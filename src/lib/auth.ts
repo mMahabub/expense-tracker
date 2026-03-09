@@ -86,9 +86,13 @@ export async function getUserById(userId: string): Promise<AuthUser | null> {
 }
 
 export function serializeCookie(name: string, value: string, maxAge: number): string {
-  return `${name}=${value}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const sameSite = isProduction ? 'None' : 'Lax';
+  return `${name}=${value}; HttpOnly; Path=/; SameSite=${sameSite}; Max-Age=${maxAge}${isProduction ? '; Secure' : ''}`;
 }
 
 export function clearCookie(name: string): string {
-  return `${name}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const sameSite = isProduction ? 'None' : 'Lax';
+  return `${name}=; HttpOnly; Path=/; SameSite=${sameSite}; Max-Age=0${isProduction ? '; Secure' : ''}`;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/apiAuth';
-import { queryOne, query } from '@/lib/db';
+import { queryOne } from '@/lib/db';
 import { getLevelForXP } from '@/lib/gamification';
 
 export async function GET(request: NextRequest) {

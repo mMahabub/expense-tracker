@@ -9,7 +9,7 @@ const { jwtVerify } = require('jose');
 const { Pool } = require('pg');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = dev ? 'localhost' : '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });
@@ -18,6 +18,7 @@ const handle = app.getRequestHandler();
 // Database pool for socket handlers
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: !dev ? { rejectUnauthorized: false } : undefined,
 });
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret');
@@ -77,8 +78,9 @@ app.prepare().then(() => {
 
   const io = new Server(server, {
     cors: {
-      origin: dev ? 'http://localhost:3000' : undefined,
+      origin: dev ? 'http://localhost:3000' : process.env.NEXT_PUBLIC_APP_URL,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
     pingTimeout: 60000,
     pingInterval: 25000,

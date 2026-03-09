@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret');
 
-const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/api/auth'];
+const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/api/auth', '/api/health'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname.startsWith(path));
