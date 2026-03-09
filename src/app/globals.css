@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f0f2f7;
+  --foreground: #1a1a2e;
+  --card-bg: rgba(255, 255, 255, 0.75);
+  --card-border: rgba(255, 255, 255, 0.5);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-border: rgba(203, 213, 225, 0.6);
+  --sidebar-bg: rgba(255, 255, 255, 0.85);
+  --text-primary: #1a1a2e;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --accent-primary: #6366f1;
+  --accent-teal: #00d4aa;
+  --accent-coral: #ff6b6b;
+}
+
+.dark {
+  --background: #0f0f1d;
+  --foreground: #e2e8f0;
+  --card-bg: rgba(26, 26, 46, 0.65);
+  --card-border: rgba(99, 102, 241, 0.12);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --input-bg: rgba(26, 26, 46, 0.8);
+  --input-border: rgba(99, 102, 241, 0.2);
+  --sidebar-bg: rgba(15, 15, 29, 0.9);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-primary: #818cf8;
+  --accent-teal: #00d4aa;
+  --accent-coral: #ff6b6b;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+/* Glassmorphism card */
+@layer components {
+  .glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: 1rem;
+  }
+
+  .glass-input {
+    background: var(--input-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--input-border);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+  }
+
+  .glass-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    outline: none;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2.5 rounded-xl font-medium text-sm text-white;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    transition: all 0.2s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2.5 rounded-xl font-medium text-sm;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--input-border);
+    transition: all 0.2s ease;
+  }
+  .btn-ghost:hover {
+    background: var(--card-bg);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+  .btn-ghost:active {
+    transform: scale(0.97);
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--card-bg) 25%,
+      rgba(148, 163, 184, 0.1) 50%,
+      var(--card-bg) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+    border-radius: 0.75rem;
+  }
+}
+
+/* Typing dots animation */
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-dot 1.4s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Badge pulse */
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+.badge-pulse {
+  animation: badge-pulse 2s infinite;
+}
+
+/* Shimmer */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Input focus styles */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* Number input hide spinners */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
