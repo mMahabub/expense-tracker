@@ -63,8 +63,8 @@ async function fetchUserFinancialData(userId: string) {
       [userId, monthStart, monthEnd]
     ),
     // Budget info
-    query<{ category: string; budget_limit: string }>(
-      `SELECT category, budget_limit FROM budgets WHERE user_id = $1 AND month = $2`,
+    query<{ category: string; amount: string }>(
+      `SELECT category, amount FROM budgets WHERE user_id = $1 AND month = $2`,
       [userId, monthStart]
     ),
     // Monthly trends (last 6 months)
@@ -92,7 +92,7 @@ async function fetchUserFinancialData(userId: string) {
     count: parseInt(c.count),
   }));
 
-  const totalBudget = budgetInfo.reduce((sum, b) => sum + parseFloat(b.budget_limit), 0);
+  const totalBudget = budgetInfo.reduce((sum, b) => sum + parseFloat(b.amount), 0);
   const budgetUsage = totalBudget > 0 ? Math.round((monthTotal / totalBudget) * 100) : null;
 
   const trends = monthlyTrends.map((t) => ({
@@ -178,8 +178,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // Fetch financial data
-    const financialData = await fetchUserFinancialData(auth.userId);
+    // Fetch financial data (with graceful fallback on DB errors)
+    const emptyData = { monthTotal: 0, monthCount: 0, categories: [], totalBudget: 0, budgetUsage: null, trends: [], bills: [] };
+    let financialData: Awaited<ReturnType<typeof fetchUserFinancialData>>;
+    try {
+      financialData = await fetchUserFinancialData(auth.userId);
+    } catch (dbError) {
+      console.error('Failed to fetch financial data:', dbError);
+      financialData = emptyData;
+    }
     const symbol = currencySymbol || '$';
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -196,31 +203,43 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildSystemPrompt(financialData, symbol);
     const history: ConversationMessage[] = conversationHistory || [];
 
-    // Call Gemini API
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    try {
+      // Call Gemini API
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        systemInstruction: { role: 'user', parts: [{ text: systemPrompt }] },
+      });
 
-    const chat = model.startChat({
-      history: history.map((m) => ({
-        role: m.role,
-        parts: m.parts,
-      })),
-      systemInstruction: systemPrompt,
-    });
+      const chat = model.startChat({
+        history: history.map((m) => ({
+          role: m.role,
+          parts: m.parts,
+        })),
+      });
 
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
+      const result = await chat.sendMessage(message);
+      const responseText = result.response.text();
 
-    return NextResponse.json({
-      response: responseText,
-      suggestions: generateSuggestions(financialData),
-      fallback: false,
-    });
+      return NextResponse.json({
+        response: responseText,
+        suggestions: generateSuggestions(financialData),
+        fallback: false,
+      });
+    } catch (aiError) {
+      console.error('Gemini API error, using fallback:', aiError);
+      // Fall back to keyword-based response when Gemini fails
+      return NextResponse.json({
+        response: generateFallbackResponse(message, financialData, symbol),
+        suggestions: generateSuggestions(financialData),
+        fallback: true,
+      });
+    }
   } catch (error) {
     console.error('POST /api/ai/chat error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to get AI response';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Failed to get AI response';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
