@@ -65,7 +65,39 @@ function broadcastOnlineStatus(io, userId, isOnline) {
 }
 
 app.prepare().then(() => {
-  const server = createServer(async (req, res) => {
+  // Create HTTP server WITHOUT a request callback.
+  // We attach listeners manually so Socket.io can intercept /socket.io/ paths.
+  const server = createServer();
+
+  // Attach Socket.io FIRST — before the Next.js handler.
+  // Socket.io will handle /socket.io/* requests internally.
+  const io = new Server(server, {
+    cors: {
+      origin: dev
+        ? ['http://localhost:3000']
+        : [process.env.NEXT_PUBLIC_APP_URL || 'https://finmate-yx36.onrender.com'],
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
+    transports: ['polling'],
+    allowUpgrades: false,
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    allowEIO3: true,
+    path: '/socket.io/',
+  });
+
+  console.log('Socket.io server ready (transport: polling)');
+
+  // Next.js handles all other requests.
+  // This listener fires AFTER Socket.io's listener (Socket.io prepends its own).
+  // As a safety net, also skip /socket.io/ explicitly.
+  server.on('request', async (req, res) => {
+    if (req.url && req.url.startsWith('/socket.io')) {
+      // Socket.io should have already handled this.
+      // If we get here, it means something went wrong — do NOT let Next.js handle it.
+      return;
+    }
     try {
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
@@ -76,27 +108,17 @@ app.prepare().then(() => {
     }
   });
 
-  const io = new Server(server, {
-    cors: {
-      origin: dev ? 'http://localhost:3000' : (process.env.NEXT_PUBLIC_APP_URL || 'https://finmate-yx36.onrender.com'),
-      methods: ['GET', 'POST'],
-      credentials: true,
-    },
-    transports: dev ? ['websocket', 'polling'] : ['polling'],
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    allowUpgrades: dev,
-  });
-
   // Authentication middleware
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) {
+      console.log('Socket auth failed: no token');
       return next(new Error('Authentication required'));
     }
 
     const userId = await verifyToken(token);
     if (!userId) {
+      console.log('Socket auth failed: invalid token');
       return next(new Error('Invalid token'));
     }
 
@@ -106,7 +128,7 @@ app.prepare().then(() => {
 
   io.on('connection', async (socket) => {
     const userId = socket.userId;
-    console.log(`User connected: ${userId} (socket: ${socket.id})`);
+    console.log(`User connected: ${userId} (socket: ${socket.id}, transport: ${socket.conn.transport.name})`);
 
     // Track online status
     if (!onlineUsers.has(userId)) {
@@ -741,7 +763,9 @@ app.prepare().then(() => {
     });
   });
 
-  server.listen(port, () => {
+  server.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
+    console.log(`> Socket.io path: /socket.io/`);
+    console.log(`> Environment: ${dev ? 'development' : 'production'}`);
   });
 });

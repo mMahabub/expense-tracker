@@ -143,20 +143,24 @@ export function useSocket() {
   useEffect(() => {
     if (!user || !token) return;
 
-    const isProduction = typeof window !== 'undefined' && window.location.protocol === 'https:';
     const socket = io({
       auth: { token },
-      transports: isProduction ? ['polling'] : ['websocket', 'polling'],
+      transports: ['polling'],
+      withCredentials: true,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 30000,
       reconnectionAttempts: maxReconnectAttempts,
-      upgrade: !isProduction,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 30000,
+      timeout: 30000,
+      forceNew: true,
+      upgrade: false,
+      path: '/socket.io/',
     });
 
     socketRef.current = socket;
 
     socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
       setIsConnected(true);
       reconnectAttemptRef.current = 0;
 
@@ -171,7 +175,8 @@ export function useSocket() {
       fetchUnreadCounts();
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
       setIsConnected(false);
     });
 
